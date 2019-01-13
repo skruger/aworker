@@ -29,9 +29,11 @@ class MemoryQueue(BaseQueue):
                 packed_task = self.memory_queue.get(block=True, timeout=1)
                 task = self.serializer.unpack(packed_task)
                 output_queue.put(RawTask(task, task))
+            except queue.Empty:
+                time.sleep(.5)
             except Exception as e:
                 print(e)
                 time.sleep(5)
 
-    def task_ack(self, raw_task):
+    async def task_ack(self, raw_task):
         pass

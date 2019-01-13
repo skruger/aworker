@@ -31,5 +31,11 @@ class BaseQueue(object):
         """
         raise NotImplementedError()
 
-    def task_ack(self, raw_task):
+    async def task_ack(self, raw_task):
+        """
+        Async safe function to acknowledge messages. If this function needs to block at all then the subclass
+        implementer is must handle non-blocking considerations
+        :param raw_task:
+        :return:
+        """
         raise NotImplementedError()

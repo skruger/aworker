@@ -2,6 +2,7 @@ import asyncio
 import uuid
 
 from aworker.serializers import TaskInfo
+from aworker.exceptions import DuplicateTaskError
 
 
 class Task(object):
@@ -39,11 +40,16 @@ class Worker(object):
     def register(self, name, **options):
         def wrapper(fn):
             t = Task(fn, name, self, **options)
+            if name in self.tasks:
+                raise DuplicateTaskError("Task named '{}' already registered.".format(name))
             self.tasks[name] = t
 
             return t
 
         return wrapper
+
+    def get_task(self, task_info):
+        return self.tasks.get(task_info.task_name)
 
     def send_queue(self, task, args, kwargs, options):
         pass
