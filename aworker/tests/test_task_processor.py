@@ -3,7 +3,7 @@ from unittest import TestCase
 
 from aworker.queue.memory import MemoryQueue
 from aworker.task import Worker
-from aworker.processor import start_worker, WorkProcessor
+from aworker.processor import WorkProcessor
 
 async def ax2(x):
     return x * 2

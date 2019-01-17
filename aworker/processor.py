@@ -1,4 +1,5 @@
 import asyncio
+import logging
 import queue
 import concurrent.futures
 
@@ -24,10 +25,6 @@ class WorkProcessor(object):
     def run(self):
         return self.loop.run_until_complete(self.async_main())
 
-    def double_function(self, t):
-        print("Doubling {}".format(t))
-        return t * 2
-
     def run_queue_task_receiver(self):
         return asyncio.ensure_future(
             self.loop.run_in_executor(self.queue_pool, self.worker.queue.task_receiver, self.receive_queue)
@@ -43,12 +40,10 @@ class WorkProcessor(object):
         :return: (task, raw_task) | None
         """
         try:
-            print("Trying to get message")
             raw_task = self.receive_queue.get(block=True, timeout=1)
             task = self.worker.get_task(raw_task.task_info)
             return task, raw_task
         except queue.Empty:
-            print("No message to get!")
             pass
 
     async def get_message(self):
@@ -66,6 +61,7 @@ class WorkProcessor(object):
             return asyncio.ensure_future(self.handle_message(task, raw_task))
 
     async def handle_message(self, task, raw_task):
+        log = logging.getLogger(__file__)
         if task.is_async():
             task_future = task.run_async(*raw_task.task_info.args, **raw_task.task_info.kwargs)
         else:
@@ -73,6 +69,8 @@ class WorkProcessor(object):
                 self.loop.run_in_executor(self.work_pool, self._execute_task_thread, task, raw_task.task_info)
             )
         result = await task_future
+
+        log.info("Task '%s' finished with result: %r", raw_task.task_info.task_name, result)
 
         # Ack The message to the queue
         await self.worker.queue.task_ack(raw_task)
@@ -91,7 +89,6 @@ class WorkProcessor(object):
             if not job_fetch_coroutine and not self.receive_queue.empty():
                 job_fetch_coroutine = asyncio.ensure_future(self.get_message())
                 running_tasks[job_fetch_coroutine] = 'job_fetch_coroutine'
-                print("Created job_fetch_coroutine")
 
             # wait for coroutines
             done_tasks, _ = await asyncio.wait(running_tasks, return_when=asyncio.FIRST_COMPLETED)
@@ -103,13 +100,10 @@ class WorkProcessor(object):
                 elif running_tasks[t] == 'job_fetch_coroutine':
                     new_task = await t
                     if new_task:
-                        print("Got new task")
                         running_tasks[new_task] = 'task'
-                    print("Clearing job_fetch_coroutine")
                     job_fetch_coroutine = None
                 else:
                     result = await t
-                    print("got result: {}".format(result))
 
                 del running_tasks[t]
 

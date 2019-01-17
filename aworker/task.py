@@ -1,5 +1,4 @@
 import asyncio
-import uuid
 
 from aworker.serializers import TaskInfo
 from aworker.exceptions import DuplicateTaskError
@@ -50,6 +49,3 @@ class Worker(object):
 
     def get_task(self, task_info):
         return self.tasks.get(task_info.task_name)
-
-    def send_queue(self, task, args, kwargs, options):
-        pass
